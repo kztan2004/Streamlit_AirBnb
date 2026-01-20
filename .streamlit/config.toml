@@ -1,0 +1,7 @@
+[theme]
+base="light"
+primaryColor="#FF4DA6"        # Hot pink buttons & highlights
+backgroundColor="#FFF0F6"     # Very soft pink background
+secondaryBackgroundColor="#FFD6E8"  # Card / sidebar pink
+textColor="#3D003D"           # Dark plum text
+font="sans serif"
