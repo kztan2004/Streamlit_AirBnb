@@ -75,6 +75,11 @@ def fill_neighbourhood(row):
     
     return candidates.loc[closest_idx, 'neighbourhood']
 
+df_selected['neighbourhood_group'] = df_selected['neighbourhood_group'].replace({
+    'brookln' : 'Brooklyn',
+    'manhatan' : 'Manhattan'
+})
+
 # Step 2: Apply to fill missing neighbourhoods
 df_selected['neighbourhood'] = df_selected.apply(
     lambda row: fill_neighbourhood(row) if pd.isna(row['neighbourhood']) else row['neighbourhood'],
@@ -96,8 +101,8 @@ df_selected['service_fee'] = df_selected.apply(
 # Create price range categories
 df_selected["price_range"] = pd.cut(
     df_selected["price"],
-    bins=[0, 50, 100, 200, 500, 1000, np.inf],
-    labels=["0-50", "50-100", "100-200", "200-500", "500-1000", "1000+"]
+    bins=[0, 250, 500, 750, 1000, np.inf],
+    labels=["0-250", "250-500", "500-750", "750-1000", "1000+"]
 )
 
 # ---------------------------
