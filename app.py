@@ -72,6 +72,22 @@ def preprocess(df_raw: pd.DataFrame) -> pd.DataFrame:
                 errors="coerce"
             )
 
+    # Replace the unnormal data with NaN
+    df.loc[
+        df['minimum_nights'] < 0,
+        'minimum_nights'
+    ] = np.nan
+
+    df.loc[
+        df['availability_365'] < 0,
+        'availability_365'
+    ] = np.nan
+
+    df.loc[
+        df['availability_365'] > 365,
+        'availability_365'
+    ] = np.nan
+
     # ---------------------------
     # Fill Nulls
     # ---------------------------
@@ -133,8 +149,8 @@ def preprocess(df_raw: pd.DataFrame) -> pd.DataFrame:
         'review_rate_number',
         'calculated_host_listings_count',
         'availability_365',
-
     ]
+    
     for col in median_columns:
         if col in df.columns:
             df[col] = df[col].fillna(df[col].median())
@@ -168,59 +184,63 @@ def preprocess(df_raw: pd.DataFrame) -> pd.DataFrame:
 
     df_engineering["price_level"] = pd.cut(
         df_engineering["price"],
-        bins=[0, 50, 100, 200, 500, 1000, np.inf],
-        labels=["very_low", "low", "medium", "high", "very_high", "luxury"]
+        bins=[-1, 250, 500, 750, 1000, np.inf],
+        labels = ["budget","lower_mid","mid_range","upper_mid","premium"]
     )
 
     df_engineering["stay_type"] = pd.cut(
         df_engineering["minimum_nights"],
-        bins=[0, 7, 30, np.inf],
-        labels=["short_stay", "medium_stay", "long_stay"]
+        bins=[-1, 2, 7, np.inf],
+        labels=["short_stay","medium_stay", "long_stay"]
     )
 
     df_engineering["reviews_popularity"] = pd.cut(
         df_engineering["number_of_reviews"],
-        bins=[-1, 10, 50, 200, np.inf],
-        labels=["low", "medium", "high", "very_high"]
+        bins=[-1, 5, 30,np.inf],
+        labels=["few_reviews","moderate_reviews","many_reviews"]
     )
 
-    df_engineering["review_quality"] = pd.cut(
-        df_engineering["review_rate_number"],
-        bins=[0, 3, 4, 5],
-        labels=["low", "medium", "high"],
-        include_lowest=True
+    df_engineering["review_quality"] = (
+        "rating_" + df_engineering["review_rate_number"]
+        .round(0).clip(1,5).astype("Int64").astype(str)
     )
 
     df_engineering["review_activity"] = pd.cut(
         df_engineering["reviews_per_month"],
-        bins=[-0.01, 0.5, 2, np.inf],
+        bins=[-1, 0.5, 2, np.inf],
         labels=["inactive", "moderate", "active"]
     )
 
     df_engineering["availability_level"] = pd.cut(
         df_engineering["availability_365"],
-        bins=[-1, 60, 180, np.inf],
+        bins=[-1, 30, 180, np.inf],
         labels=["rarely_available", "seasonal", "mostly_available"]
     )
 
     df_engineering["host_experience"] = pd.cut(
         df_engineering["calculated_host_listings_count"],
-        bins=[-1, 1, 5, 20, np.inf],
-        labels=["single", "small_portfolio", "experienced", "professional"]
+        bins=[-1, 1, 5, np.inf],
+        labels=["single_listing","small_portfolio","professional_host"]
     )
 
     df_engineering["total_min_cost"] = df_engineering["price"] * df_engineering["minimum_nights"]
     df_engineering["total_cost_level"] = pd.cut(
         df_engineering["total_min_cost"],
-        bins=[0, 100, 500, 2000, np.inf],
-        labels=["budget", "mid_range", "expensive", "luxury_investment"]
+        bins=[0, 500, 1500, 4000, np.inf],
+        labels=["budget", "mid_range", "expensive", "high_commitment"]
     )
 
     df_engineering["review_density"] = df_engineering["number_of_reviews"] / (df_engineering["availability_365"] + 1)
     df_engineering["review_density_level"] = pd.cut(
         df_engineering["review_density"],
-        bins=[-0.01, 0.05, 0.2, np.inf],
-        labels=["low", "medium", "high"]
+        bins=[-0.01, 0.1, 1, np.inf],
+        labels=["low_engagement", "moderate_engagement", "high_engagement"]
+    )
+
+    df_engineering["construction_era"] = pd.cut(
+        df_engineering["construction_year"],
+        bins=[2002, 2007, 2012, 2017, 2022],
+        labels=["early_2000s","late_2000s","mid_2010s","recent"]
     )
 
     return df_engineering
@@ -299,7 +319,8 @@ if page == "🔍 ARM Explorer":
         "availability_level",
         "host_experience",
         "total_cost_level",
-        "review_density_level"
+        "review_density_level",
+        "construction_era",
     ]
 
     # Keep only existing cols (safety)
@@ -548,7 +569,8 @@ else:
         "availability_level",
         "host_experience",
         "total_cost_level",
-        "review_density_level"
+        "review_density_level",
+        "construction_era",
     ]
 
     selectable_cols = [c for c in selectable_cols if c in df.columns]
